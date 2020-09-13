@@ -1,11 +1,60 @@
 // koa is similar to express
+require("isomorphic-fetch");
+const dotenv = require("dotenv");
+const Koa = require("koa");
+// const KoaRouter = require("koa-router");
+const next = require("next");
+const { default: createShopifyAuth } = require("@shopify/koa-shopify-auth");
+const { verifyRequest } = require("@shopify/koa-shopify-auth");
+const session = require("koa-session");
+// const koaBody = require('koa-body')
 
-const koa = require("koa");
+dotenv.config();
+// const { default: graphQLProxy } = require('@shopify/koa-shopify-graphql-proxy');
+// const { ApiVersion } = require('@shopify/koa-shopify-graphql-proxy');
 
-const server = new koa();
+const port = parseInt(process.env.PORT, 10) || 3000;
+const dev = process.env.NODE_ENV !== "production";
+const app = next({ dev });
+const handle = app.getRequestHandler();
 
-// ctx obj that contains all of the context for our app. before you had de call everything separately now its just a single obj and we can access it like an obj
+// briging the api keys
+const { SHOPIFY_API_SECRET_KEY, SHOPIFY_API_KEY } = process.env;
 
-server.use(async (ctx) => (ctx.body = "Hello Koa App"));
+app.prepare().then(() => {
+  const server = new Koa();
+  server.use(session(server));
+  server.keys = [SHOPIFY_API_SECRET_KEY];
 
-server.listen(3000, () => console.log("Server running in localhost 3000"));
+  server.use(
+    createShopifyAuth({
+      apiKey: SHOPIFY_API_KEY,
+      secret: SHOPIFY_API_SECRET_KEY,
+      scopes: [
+        "read_products",
+        "write_products",
+        "read_script_tags",
+        "write_script_tags",
+      ],
+      afterAuth(ctx) {
+        const { shop, accessToken } = ctx.session;
+
+        ctx.redirect("/");
+      },
+    })
+  );
+
+  server.use(verifyRequest());
+  server.use(async (ctx) => {
+    await handle(ctx.req, ctx.res);
+    ctx.respond = false;
+    ctx.res.statusCode = 200;
+    return;
+  });
+
+  // ctx obj that contains all of the context for our app. before you had de call everything separately now its just a single obj and we can access it like an obj
+
+  server.listen(port, () => {
+    console.log(`> Ready on http://localhost:${port}`);
+  });
+});
