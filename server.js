@@ -19,7 +19,7 @@ const app = next({ dev });
 const handle = app.getRequestHandler();
 
 // briging the api keys
-const { SHOPIFY_API_SECRET_KEY, SHOPIFY_API_KEY } = process.env;
+const { SHOPIFY_API_SECRET_KEY, SHOPIFY_API } = process.env;
 
 app.prepare().then(() => {
   const server = new Koa();
@@ -28,7 +28,7 @@ app.prepare().then(() => {
 
   server.use(
     createShopifyAuth({
-      apiKey: SHOPIFY_API_KEY,
+      apiKey: SHOPIFY_API,
       secret: SHOPIFY_API_SECRET_KEY,
       scopes: [
         "read_products",
