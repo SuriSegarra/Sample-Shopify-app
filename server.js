@@ -38,6 +38,13 @@ app.prepare().then(() => {
       ],
       afterAuth(ctx) {
         const { shop, accessToken } = ctx.session;
+        // value will pass in as shop and we get this value from ctx.session and shop value is the shop URL
+        ctx.cookies.set("shopOrigin", shop, {
+          // its important to put these parameters because this application is loaded inside of the frame in in teh shopify admin side of the page.
+          httpOnly: false,
+          secure: true,
+          sameSite: "none",
+        });
 
         ctx.redirect("/");
       },
